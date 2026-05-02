@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Web IDE</title>
+    
+    <!-- Cascadia Code 字体 - VS Code 官方字体 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cascadia-code@5.2.3/index.min.css">
+    
+    <!-- 全局样式重置 -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Cascadia Code', monospace;
+            background-color: #1E1E1E;
+            color: #CCCCCC;
+        }
+        
+        #app-container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+        
+        /* VS Code Dark+ 主题配色 */
+        :root {
+            --editor-bg: #1E1E1E;
+            --sidebar-bg: #252526;
+            --activity-bar-bg: #333333;
+            --panel-bg: #1E1E1E;
+            --terminal-bg: #0C0C0C;
+            --titlebar-bg: #323233;
+            --tabbar-bg: #2D2D2D;
+            --focus-bg: #37373D;
+            --text-primary: #CCCCCC;
+            --text-secondary: #999999;
+            --accent: #007ACC;
+        }
+        
+        /* 活动栏样式 */
+        #activity-bar {
+            width: 48px;
+            background-color: var(--activity-bar-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 8px;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        
+        /* 侧边栏样式 */
+        #sidebar {
+            width: 250px;
+            background-color: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        
+        #sidebar-header {
+            padding: 12px 16px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            background-color: rgba(0,0,0,0.1);
+        }
+        
+        #sidebar-content {
+            flex: 1;
+            overflow: auto;
+        }
+        
+        /* 主内容区 */
+        #main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        /* 工具栏 */
+        #toolbar {
+            height: 32px;
+            background-color: var(--titlebar-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            gap: 8px;
+            border-bottom: 1px solid #3C3C3C;
+        }
+        
+        /* 编辑区 */
+        #editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--editor-bg);
+        }
+        
+        #tabs-container {
+            background-color: var(--tabbar-bg);
+            border-bottom: 1px solid #3C3C3C;
+        }
+        
+        #editor-wrapper {
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        #editor {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* 底部面板 */
+        #panel-container {
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--panel-bg);
+            border-top: 1px solid #3C3C3C;
+        }
+        
+        #panel-header {
+            height: 24px;
+            background-color: var(--tabbar-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            gap: 8px;
+            cursor: pointer;
+        }
+        
+        #panel-header:hover {
+            background-color: var(--focus-bg);
+        }
+        
+        #panel-content {
+            flex: 1;
+            overflow: auto;
+            background-color: var(--terminal-bg);
+            padding: 8px;
+            font-family: 'Cascadia Code', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        #panel-resize-handle {
+            height: 4px;
+            background-color: #444;
+            cursor: ns-resize;
+        }
+        
+        #panel-resize-handle:hover {
+            background-color: #666;
+        }
+        
+        /* 终端输出样式 */
+        .stdout {
+            color: #CCCCCC;
+        }
+        
+        .stderr {
+            color: #F14C4C;
+        }
+        
+        /* 欢迎页面 */
+        #welcome-page {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--editor-bg);
+            color: var(--text-secondary);
+        }
+        
+        #welcome-page h1 {
+            font-size: 24px;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+        
+        #welcome-page p {
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        /* 加载动画 */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1E1E1E;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        #loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid #333;
+            border-top-color: #007ACC;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 24px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        #loading-text {
+            font-size: 16px;
+            color: #CCCCCC;
+            margin-bottom: 16px;
+        }
+        
+        #loading-progress-bar {
+            width: 300px;
+            height: 6px;
+            background-color: #333;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        #loading-progress {
+            height: 100%;
+            background-color: #007ACC;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        /* 上下文菜单 */
+        .context-menu {
+            position: fixed;
+            background-color: #2D2D2D;
+            border: 1px solid #3C3C3C;
+            border-radius: 4px;
+            padding: 4px;
+            min-width: 160px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            z-index: 10000;
+            display: none;
+        }
+        
+        .context-menu.visible {
+            display: block;
+        }
+        
+        .context-menu-item {
+            padding: 8px 12px;
+            font-size: 13px;
+            color: #CCCCCC;
+            cursor: pointer;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .context-menu-item:hover {
+            background-color: #37373D;
+        }
+        
+        .context-menu-separator {
+            height: 1px;
+            background-color: #3C3C3C;
+            margin: 4px 0;
+        }
+        
+        /* 包管理面板 */
+        #package-panel {
+            padding: 12px;
+            display: none;
+        }
+        
+        #package-panel.active {
+            display: block;
+        }
+        
+        #package-input-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        #installed-packages {
+            max-height: 300px;
+            overflow: auto;
+        }
+        
+        .package-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            border-radius: 4px;
+        }
+        
+        .package-item:hover {
+            background-color: #37373D;
+        }
+        
+        /* 输入模式提示 */
+        #input-prompt {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 8px;
+            background-color: #0C0C0C;
+            border-top: 1px solid #3C3C3C;
+        }
+        
+        #input-prompt input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #CCCCCC;
+            font-family: 'Cascadia Code', monospace;
+            font-size: 14px;
+        }
+        
+        /* 触摸目标大小 */
+        vscode-button, .activity-btn {
+            min-width: 44px !important;
+            min-height: 44px !important;
+        }
+        
+        vscode-tree-item {
+            min-height: 24px;
+            line-height: 24px;
+        }
+        
+        /* 隐藏滚动条但保持滚动功能 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <!-- 加载动画 -->
+    <div id="loading-overlay">
+        <div id="loading-spinner"></div>
+        <div id="loading-text">正在初始化 Python 运行时...</div>
+        <div id="loading-progress-bar">
+            <div id="loading-progress"></div>
+        </div>
+    </div>
+    
+    <!-- 主应用容器 -->
+    <div id="app-container">
+        <!-- 活动栏 -->
+        <div id="activity-bar">
+            <button class="activity-btn" id="explorer-btn" title="文件浏览器" style="background: none; border: none; cursor: pointer; padding: 8px; border-radius: 4px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 18H20V20H4V18Z" fill="#999999"/>
+                    <path d="M4 14H16V16H4V14Z" fill="#999999"/>
+                    <path d="M4 6H20V8H4V6Z" fill="#999999"/>
+                    <path d="M4 10H12V12H4V10Z" fill="#999999"/>
+                </svg>
+            </button>
+            <button class="activity-btn" id="packages-btn" title="包管理器" style="background: none; border: none; cursor: pointer; padding: 8px; border-radius: 4px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" stroke="#999999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 13L12 17" stroke="#999999" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M8 9L12 13L16 9" stroke="#999999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- 侧边栏 -->
+        <div id="sidebar">
+            <div id="sidebar-header">文件浏览器</div>
+            <div id="sidebar-content">
+                <!-- 文件树 -->
+                <vscode-tree id="file-tree" aria-label="文件浏览器"></vscode-tree>
+            </div>
+        </div>
+        
+        <!-- 主内容区 -->
+        <div id="main-content">
+            <!-- 工具栏 -->
+            <div id="toolbar">
+                <vscode-button id="run-btn" appearance="primary">运行</vscode-button>
+                <vscode-button id="save-btn">保存</vscode-button>
+                <vscode-button id="new-file-btn">新建文件</vscode-button>
+                <vscode-button id="new-folder-btn">新建文件夹</vscode-button>
+            </div>
+            
+            <!-- 编辑区 -->
+            <div id="editor-container">
+                <vscode-tabs id="tabs-container" aria-label="打开的文件"></vscode-tabs>
+                <div id="editor-wrapper">
+                    <div id="editor"></div>
+                </div>
+            </div>
+            
+            <!-- 底部面板 -->
+            <div id="panel-container">
+                <div id="panel-resize-handle"></div>
+                <div id="panel-header">
+                    <span>终端</span>
+                    <button id="clear-terminal" style="background: none; border: none; color: #999; cursor: pointer; font-size: 12px; margin-left: auto;">清除</button>
+                </div>
+                <div id="panel-content"></div>
+                <div id="input-prompt" style="display: none;">
+                    <span style="color: #007ACC;">></span>
+                    <input type="text" id="input-field" placeholder="输入内容并按回车..." autocomplete="off">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 上下文菜单 -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item" id="menu-new-file">
+            <span>📄</span>
+            <span>新建文件</span>
+        </div>
+        <div class="context-menu-item" id="menu-new-folder">
+            <span>📁</span>
+            <span>新建文件夹</span>
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" id="menu-rename">
+            <span>✏️</span>
+            <span>重命名</span>
+        </div>
+        <div class="context-menu-item" id="menu-delete">
+            <span>🗑️</span>
+            <span>删除</span>
+        </div>
+    </div>
+    
+    <!-- 包管理面板（隐藏） -->
+    <div id="package-panel">
+        <div id="package-input-container">
+            <input type="text" id="package-name" placeholder="输入包名..." style="flex: 1; padding: 8px; background: #1E1E1E; border: 1px solid #3C3C3C; border-radius: 4px; color: #CCC; font-family: 'Cascadia Code'; font-size: 14px;">
+            <vscode-button id="install-package">安装</vscode-button>
+        </div>
+        <div id="installed-packages"></div>
+    </div>
+    
+    <!-- md5 库（本地） -->
+    <script src="js/md5.min.js"></script>
+    
+    <!-- CDN 依赖引入 -->
+    <script type="module">
+        // 1. 引入 Monaco Editor
+        import * as monaco from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/+esm';
+        
+        // 2. 引入 @vscode-elements/elements (使用打包好的 bundled.js)
+        import 'https://cdn.jsdelivr.net/npm/@vscode-elements/elements@2.5.1/dist/bundled.js';
+        
+        // 3. 引入 Pyodide
+        import { loadPyodide } from 'https://cdn.jsdelivr.net/pyodide/v0.26.0/full/pyodide.mjs';
+        
+        // 全局变量
+        let pyodide = null;
+        let monacoEditor = null;
+        let currentFile = null;
+        let openTabs = {};
+        let isExecuting = false;
+        let inputResolve = null;
+        
+        // DOM 元素
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingProgress = document.getElementById('loading-progress');
+        const loadingText = document.getElementById('loading-text');
+        const fileTree = document.getElementById('file-tree');
+        const tabsContainer = document.getElementById('tabs-container');
+        const editorWrapper = document.getElementById('editor-wrapper');
+        const editorDiv = document.getElementById('editor');
+        const panelContent = document.getElementById('panel-content');
+        const inputPrompt = document.getElementById('input-prompt');
+        const inputField = document.getElementById('input-field');
+        const contextMenu = document.getElementById('context-menu');
+        const runBtn = document.getElementById('run-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const newFileBtn = document.getElementById('new-file-btn');
+        const newFolderBtn = document.getElementById('new-folder-btn');
+        const explorerBtn = document.getElementById('explorer-btn');
+        const packagesBtn = document.getElementById('packages-btn');
+        const sidebarContent = document.getElementById('sidebar-content');
+        const sidebarHeader = document.getElementById('sidebar-header');
+        const packagePanel = document.getElementById('package-panel');
+        const installBtn = document.getElementById('install-package');
+        const packageNameInput = document.getElementById('package-name');
+        const installedPackagesDiv = document.getElementById('installed-packages');
+        const clearTerminalBtn = document.getElementById('clear-terminal');
+        
+        // 当前右键点击的目标
+        let contextMenuTarget = null;
+        let contextMenuType = null; // 'file', 'folder', 'tree'
+        
+        // 初始化 Monaco Editor
+        async function initMonaco() {
+            // 配置 Monaco Editor - 关键设置以支持系统剪贴板
+            monaco.editor.defineTheme('vs-dark-custom', {
+                base: 'vs-dark',
+                inherit: true,
+                rules: [],
+                colors: {
+                    'editor.background': '#1E1E1E',
+                    'editor.foreground': '#CCCCCC',
+                    'editor.lineHighlightBackground': '#2D2D2D',
+                    'editor.selectionBackground': '#264F78',
+                    'editorCursor.foreground': '#AEAFAD',
+                    'editorWhitespace.foreground': '#3B3B3B',
+                    'editorLineNumber.foreground': '#858585',
+                    'editorLineNumber.activeForeground': '#C6C6C6',
+                }
+            });
+            
+            // 创建编辑器
+            monacoEditor = monaco.editor.create(editorDiv, {
+                value: '',
+                language: 'python',
+                theme: 'vs-dark-custom',
+                fontFamily: 'Cascadia Code, Consolas, monospace',
+                fontSize: 14,
+                lineNumbers: 'on',
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                minimap: { enabled: true },
+                folding: true,
+                bracketPairColorization: { enabled: true },
+                renderLineHighlight: 'line',
+                tabSize: 4,
+                insertSpaces: true,
+                wordWrap: 'on',
+                
+                // 关键设置：支持系统剪贴板和触摸操作
+                contextmenu: false,           // 禁用 Monaco 上下文菜单，让浏览器默认菜单生效
+                selectOnLineNumbers: true,    // 允许点击行号选中整行
+                selectionClipboard: false,    // 禁用 Monaco 内部剪贴板
+                scrollbar: {
+                    alwaysConsumeMouseWheel: false,
+                    handleMouseWheel: true,
+                },
+                domReadOnly: false,           // 确保可编辑
+                readOnly: false,
+            });
+            
+            // 监听编辑器内容变化
+            monacoEditor.onDidChangeModelContent(() => {
+                updateTabModifiedStatus(currentFile, true);
+            });
+            
+            // 显示欢迎页面
+            showWelcomePage();
+        }
+        
+        // 显示欢迎页面
+        function showWelcomePage() {
+            const welcomeHTML = `
+                <div id="welcome-page">
+                    <h1>🐍 Python Web IDE</h1>
+                    <p>基于 Pyodide 和 Monaco Editor</p>
+                    <p style="margin-top: 24px; font-size: 12px; color: #666;">双击文件树中的文件开始编辑</p>
+                    <p style="font-size: 12px; color: #666;">或点击"新建文件"创建新文件</p>
+                </div>
+            `;
+            editorWrapper.innerHTML = welcomeHTML;
+            monacoEditor?.dispose();
+            monacoEditor = null;
+        }
+        
+        // 初始化文件树
+        function initFileTree() {
+            fileTree.addEventListener('vsc-tree-select', (e) => {
+                const item = e.detail.item;
+                if (item && item.dataset.path) {
+                    // 双击打开文件
+                }
+            });
+            
+            // 支持触摸长按触发上下文菜单
+            let longPressTimer = null;
+            fileTree.addEventListener('touchstart', (e) => {
+                const target = e.target.closest('vscode-tree-item');
+                if (target) {
+                    longPressTimer = setTimeout(() => {
+                        showContextMenu(e, target);
+                    }, 800);
+                }
+            }, { passive: true });
+            
+            fileTree.addEventListener('touchend', () => {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+            });
+            
+            fileTree.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                const target = e.target.closest('vscode-tree-item');
+                showContextMenu(e, target);
+            });
+        }
+        
+        // 显示上下文菜单
+        function showContextMenu(e, target) {
+            contextMenu.style.display = 'block';
+            
+            if (target) {
+                contextMenuTarget = target;
+                contextMenuType = target.dataset.type || 'tree';
+                
+                // 根据类型显示/隐藏菜单项
+                document.getElementById('menu-rename').style.display = 
+                    contextMenuType === 'tree' ? 'none' : 'flex';
+                document.getElementById('menu-delete').style.display = 
+                    contextMenuType === 'tree' ? 'none' : 'flex';
+            } else {
+                contextMenuTarget = null;
+                contextMenuType = 'tree';
+                document.getElementById('menu-rename').style.display = 'none';
+                document.getElementById('menu-delete').style.display = 'none';
+            }
+            
+            // 设置菜单位置
+            const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+            
+            contextMenu.style.left = `${clientX}px`;
+            contextMenu.style.top = `${clientY}px`;
+        }
+        
+        // 隐藏上下文菜单
+        function hideContextMenu() {
+            contextMenu.style.display = 'none';
+            contextMenuTarget = null;
+        }
+        
+        // 刷新文件树
+        async function refreshFileTree() {
+            // 清空现有树
+            fileTree.innerHTML = '';
+            
+            try {
+                // 获取根目录内容
+                const rootPath = '/workspace';
+                const items = await listDirectory(rootPath);
+                
+                // 创建树结构
+                items.forEach(item => {
+                    const treeItem = document.createElement('vscode-tree-item');
+                    treeItem.label = item.name;
+                    treeItem.dataset.path = item.path;
+                    treeItem.dataset.type = item.type;
+                    
+                    if (item.type === 'directory') {
+                        treeItem.expanded = false;
+                        treeItem.hasChildren = true;
+                    }
+                    
+                    fileTree.appendChild(treeItem);
+                });
+                
+                // 监听树展开事件，动态加载子目录
+                fileTree.addEventListener('vsc-tree-expand', async (e) => {
+                    const item = e.detail.item;
+                    const path = item.dataset.path;
+                    
+                    if (item.dataset.type === 'directory' && !item.dataset.loaded) {
+                        const children = await listDirectory(path);
+                        
+                        children.forEach(child => {
+                            const childItem = document.createElement('vscode-tree-item');
+                            childItem.label = child.name;
+                            childItem.dataset.path = child.path;
+                            childItem.dataset.type = child.type;
+                            
+                            if (child.type === 'directory') {
+                                childItem.expanded = false;
+                                childItem.hasChildren = true;
+                            }
+                            
+                            item.appendChild(childItem);
+                        });
+                        
+                        item.dataset.loaded = 'true';
+                    }
+                });
+                
+                // 双击打开文件
+                fileTree.addEventListener('dblclick', async (e) => {
+                    const target = e.target.closest('vscode-tree-item');
+                    if (target && target.dataset.type === 'file' && target.dataset.path.endsWith('.py')) {
+                        await openFile(target.dataset.path);
+                    }
+                });
+                
+                // 单击选中
+                fileTree.addEventListener('click', (e) => {
+                    const target = e.target.closest('vscode-tree-item');
+                    if (target) {
+                        // 取消其他选中
+                        document.querySelectorAll('vscode-tree-item').forEach(item => {
+                            item.removeAttribute('selected');
+                        });
+                        target.setAttribute('selected', '');
+                    }
+                });
+            } catch (error) {
+                console.error('刷新文件树失败:', error);
+            }
+        }
+        
+        // 列出目录内容
+        async function listDirectory(path) {
+            const result = [];
+            
+            try {
+                // 使用 Pyodide FS API
+                const entries = pyodide.FS.readdir(path);
+                
+                for (const entry of entries) {
+                    if (entry === '.' || entry === '..') continue;
+                    
+                    const fullPath = path === '/' ? `/${entry}` : `${path}/${entry}`;
+                    const stat = pyodide.FS.stat(fullPath);
+                    
+                    result.push({
+                        name: entry,
+                        path: fullPath,
+                        type: pyodide.FS.isDir(stat) ? 'directory' : 'file'
+                    });
+                }
+                
+                // 按类型排序：文件夹在前，文件在后，名称按字母顺序
+                result.sort((a, b) => {
+                    if (a.type !== b.type) {
+                        return a.type === 'directory' ? -1 : 1;
+                    }
+                    return a.name.localeCompare(b.name);
+                });
+            } catch (error) {
+                console.error(`读取目录 ${path} 失败:`, error);
+            }
+            
+            return result;
+        }
+        
+        // 打开文件
+        async function openFile(filePath) {
+            // 如果已打开，切换到该标签页
+            if (openTabs[filePath]) {
+                switchToTab(filePath);
+                return;
+            }
+            
+            // 读取文件内容
+            let content = '';
+            try {
+                content = pyodide.FS.readFile(filePath, { encoding: 'utf8' });
+            } catch (error) {
+                console.error('读取文件失败:', error);
+                content = '';
+            }
+            
+            // 创建新标签页
+            const tab = document.createElement('vscode-tab');
+            tab.label = filePath.split('/').pop();
+            tab.dataset.path = filePath;
+            tabsContainer.appendChild(tab);
+            
+            // 保存到打开的标签页列表
+            openTabs[filePath] = {
+                tab: tab,
+                content: content,
+                modified: false
+            };
+            
+            // 如果之前显示欢迎页面，需要重新创建编辑器
+            if (!monacoEditor) {
+                editorWrapper.innerHTML = '<div id="editor"></div>';
+                await initMonaco();
+            }
+            
+            // 切换到新标签页
+            switchToTab(filePath);
+            
+            // 监听标签页关闭
+            tab.addEventListener('vsc-tab-close', () => {
+                closeTab(filePath);
+            });
+        }
+        
+        // 切换标签页
+        function switchToTab(filePath) {
+            // 更新当前文件
+            currentFile = filePath;
+            
+            // 更新标签选中状态
+            document.querySelectorAll('vscode-tab').forEach(tab => {
+                tab.active = tab.dataset.path === filePath;
+            });
+            
+            // 更新编辑器内容
+            if (monacoEditor && openTabs[filePath]) {
+                // 保存当前内容到之前的文件
+                if (currentFile && openTabs[currentFile]) {
+                    openTabs[currentFile].content = monacoEditor.getValue();
+                }
+                
+                // 加载新文件内容
+                monacoEditor.setValue(openTabs[filePath].content);
+                updateTabModifiedStatus(filePath, openTabs[filePath].modified);
+            }
+        }
+        
+        // 关闭标签页
+        function closeTab(filePath) {
+            // 如果是最后一个标签页，显示欢迎页面
+            if (Object.keys(openTabs).length === 1) {
+                showWelcomePage();
+                currentFile = null;
+            } else if (currentFile === filePath) {
+                // 切换到其他标签页
+                const otherPaths = Object.keys(openTabs).filter(p => p !== filePath);
+                switchToTab(otherPaths[0]);
+            }
+            
+            // 移除标签页
+            if (openTabs[filePath]) {
+                openTabs[filePath].tab.remove();
+                delete openTabs[filePath];
+            }
+        }
+        
+        // 更新标签页修改状态
+        function updateTabModifiedStatus(filePath, modified) {
+            if (openTabs[filePath]) {
+                openTabs[filePath].modified = modified;
+                const tab = openTabs[filePath].tab;
+                
+                if (modified) {
+                    tab.label = `• ${tab.label.replace(/^• /, '')}`;
+                } else {
+                    tab.label = tab.label.replace(/^• /, '');
+                }
+            }
+        }
+        
+        // 保存文件
+        async function saveFile(filePath = currentFile) {
+            if (!filePath || !openTabs[filePath]) return;
+            
+            try {
+                const content = monacoEditor.getValue();
+                const encoder = new TextEncoder();
+                pyodide.FS.writeFile(filePath, encoder.encode(content));
+                updateTabModifiedStatus(filePath, false);
+                appendToTerminal(`已保存: ${filePath}\n`, 'stdout');
+            } catch (error) {
+                appendToTerminal(`保存失败: ${error.message}\n`, 'stderr');
+            }
+        }
+        
+        // 创建新文件
+        async function createNewFile() {
+            // 生成唯一文件名
+            let index = 1;
+            let newPath = `/workspace/new_file${index}.py`;
+
+            while (openTabs[newPath] || await fileExists(newPath)) {
+                index++;
+                newPath = `/workspace/new_file${index}.py`;
+            }
+
+            // 创建空文件
+            const encoder = new TextEncoder();
+            pyodide.FS.writeFile(newPath, encoder.encode(''));
+
+            // 刷新文件树并打开
+            await refreshFileTree();
+            await openFile(newPath);
+        }
+        
+        // 创建新文件夹
+        async function createNewFolder() {
+            let index = 1;
+            let newPath = `/workspace/new_folder${index}`;
+            
+            while (await dirExists(newPath)) {
+                index++;
+                newPath = `/workspace/new_folder${index}`;
+            }
+            
+            pyodide.FS.mkdirTree(newPath);
+            await refreshFileTree();
+        }
+        
+        // 检查文件是否存在
+        async function fileExists(path) {
+            try {
+                pyodide.FS.stat(path);
+                return true;
+            } catch {
+                return false;
+            }
+        }
+        
+        // 检查目录是否存在
+        async function dirExists(path) {
+            try {
+                return pyodide.FS.isDir(pyodide.FS.stat(path));
+            } catch {
+                return false;
+            }
+        }
+        
+        // 重命名文件/文件夹
+        async function renameItem() {
+            if (!contextMenuTarget || !contextMenuTarget.dataset.path) return;
+            
+            const oldPath = contextMenuTarget.dataset.path;
+            const oldName = oldPath.split('/').pop();
+            const parentPath = oldPath.substring(0, oldPath.lastIndexOf('/')) || '/';
+            
+            const newName = prompt('输入新名称:', oldName);
+            if (!newName) return;
+            
+            const newPath = parentPath === '/' ? `/${newName}` : `${parentPath}/${newName}`;
+            
+            try {
+                pyodide.FS.rename(oldPath, newPath);
+                
+                // 更新标签页
+                if (openTabs[oldPath]) {
+                    openTabs[newPath] = openTabs[oldPath];
+                    openTabs[newPath].tab.label = newName;
+                    openTabs[newPath].tab.dataset.path = newPath;
+                    delete openTabs[oldPath];
+                    
+                    if (currentFile === oldPath) {
+                        currentFile = newPath;
+                    }
+                }
+                
+                await refreshFileTree();
+            } catch (error) {
+                appendToTerminal(`重命名失败: ${error.message}\n`, 'stderr');
+            }
+        }
+        
+        // 删除文件/文件夹
+        async function deleteItem() {
+            if (!contextMenuTarget || !contextMenuTarget.dataset.path) return;
+            
+            const path = contextMenuTarget.dataset.path;
+            
+            if (!confirm(`确定要删除 "${path}" 吗？`)) return;
+            
+            try {
+                const stat = pyodide.FS.stat(path);
+                
+                if (pyodide.FS.isDir(stat)) {
+                    pyodide.FS.rmdir(path);
+                } else {
+                    pyodide.FS.unlink(path);
+                }
+                
+                // 关闭相关标签页
+                if (openTabs[path]) {
+                    closeTab(path);
+                }
+                
+                await refreshFileTree();
+            } catch (error) {
+                appendToTerminal(`删除失败: ${error.message}\n`, 'stderr');
+            }
+        }
+        
+        // 执行 Python 代码
+        async function runPython() {
+            if (!currentFile || !openTabs[currentFile] || isExecuting) return;
+            
+            isExecuting = true;
+            runBtn.disabled = true;
+            
+            // 保存当前文件
+            await saveFile();
+            
+            // 清空终端
+            panelContent.innerHTML = '';
+            
+            // 获取代码
+            const code = monacoEditor.getValue();
+            
+            try {
+                // 重定向 stdout 和 stderr
+                pyodide.setStdout({
+                    write: (text) => appendToTerminal(text, 'stdout'),
+                    flush: () => {}
+                });
+                
+                pyodide.setStderr({
+                    write: (text) => appendToTerminal(text, 'stderr'),
+                    flush: () => {}
+                });
+                
+                // 覆盖 input 函数以支持终端输入
+                await pyodide.runPythonAsync(`
+                    import builtins
+                    original_input = builtins.input
+                    
+                    async def custom_input(prompt=''):
+                        import js
+                        return await js.getInput(prompt)
+                    
+                    builtins.input = custom_input
+                `);
+                
+                // 执行代码
+                await pyodide.runPythonAsync(code);
+                
+                appendToTerminal('\n✓ 执行完成\n', 'stdout');
+            } catch (error) {
+                appendToTerminal(`\n✗ 错误: ${error.message}\n`, 'stderr');
+                if (error.stack) {
+                    appendToTerminal(`${error.stack}\n`, 'stderr');
+                }
+            } finally {
+                // 恢复原始 input
+                await pyodide.runPythonAsync(`
+                    import builtins
+                    builtins.input = original_input
+                `);
+                
+                isExecuting = false;
+                runBtn.disabled = false;
+            }
+        }
+        
+        // 获取用户输入（用于 input() 函数）
+        window.getInput = async function(prompt) {
+            return new Promise((resolve) => {
+                inputResolve = resolve;
+                inputPrompt.style.display = 'flex';
+                inputField.value = '';
+                inputField.focus();
+                
+                // 显示提示
+                if (prompt) {
+                    appendToTerminal(prompt, 'stdout');
+                }
+            });
+        };
+        
+        // 处理输入提交
+        inputField.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const value = inputField.value;
+                inputPrompt.style.display = 'none';
+                
+                if (inputResolve) {
+                    inputResolve(value);
+                    inputResolve = null;
+                }
+                
+                // 显示输入内容
+                appendToTerminal(`${value}\n`, 'stdout');
+            }
+        });
+        
+        // 追加内容到终端
+        function appendToTerminal(text, type = 'stdout') {
+            const span = document.createElement('span');
+            span.className = type;
+            span.textContent = text;
+            panelContent.appendChild(span);
+            panelContent.scrollTop = panelContent.scrollHeight;
+        }
+        
+        // 安装 Python 包
+        async function installPackage() {
+            const packageName = packageNameInput.value.trim();
+            if (!packageName) return;
+            
+            installBtn.disabled = true;
+            appendToTerminal(`正在安装 ${packageName}...\n`, 'stdout');
+            
+            try {
+                await pyodide.loadPackage(['micropip']);
+                const micropip = await pyodide.pyimport('micropip');
+                await micropip.install(packageName);
+                appendToTerminal(`✓ ${packageName} 安装成功\n`, 'stdout');
+                await refreshInstalledPackages();
+            } catch (error) {
+                appendToTerminal(`✗ 安装失败: ${error.message}\n`, 'stderr');
+            } finally {
+                installBtn.disabled = false;
+                packageNameInput.value = '';
+            }
+        }
+        
+        // 刷新已安装的包列表
+        async function refreshInstalledPackages() {
+            installedPackagesDiv.innerHTML = '';
+            
+            try {
+                await pyodide.loadPackage(['micropip']);
+                const micropip = await pyodide.pyimport('micropip');
+                const packages = await micropip.list();
+                
+                packages.forEach(pkg => {
+                    const div = document.createElement('div');
+                    div.className = 'package-item';
+                    div.innerHTML = `
+                        <span>${pkg.name}</span>
+                        <span style="color: #999; font-size: 12px;">${pkg.version}</span>
+                    `;
+                    installedPackagesDiv.appendChild(div);
+                });
+            } catch (error) {
+                console.error('获取已安装包列表失败:', error);
+            }
+        }
+        
+        // 切换侧边栏面板
+        function switchSidebarPanel(panel) {
+            if (panel === 'explorer') {
+                fileTree.style.display = 'block';
+                packagePanel.classList.remove('active');
+                sidebarHeader.textContent = '文件浏览器';
+                explorerBtn.style.backgroundColor = '#37373D';
+                packagesBtn.style.backgroundColor = 'transparent';
+            } else if (panel === 'packages') {
+                fileTree.style.display = 'none';
+                packagePanel.classList.add('active');
+                sidebarHeader.textContent = '包管理器';
+                packagesBtn.style.backgroundColor = '#37373D';
+                explorerBtn.style.backgroundColor = 'transparent';
+            }
+        }
+        
+        // 拖拽上传处理
+        function setupDragAndDrop() {
+            const sidebarContent = document.getElementById('sidebar-content');
+            
+            sidebarContent.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                sidebarContent.style.backgroundColor = '#37373D';
+            });
+            
+            sidebarContent.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                sidebarContent.style.backgroundColor = '';
+            });
+            
+            sidebarContent.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                sidebarContent.style.backgroundColor = '';
+                
+                const files = e.dataTransfer.files;
+                for (const file of files) {
+                    if (file.name.endsWith('.py')) {
+                        // 处理 Python 文件
+                        const content = await file.text();
+                        const filePath = `/workspace/${file.name}`;
+                        const encoder = new TextEncoder();
+                        pyodide.FS.writeFile(filePath, encoder.encode(content));
+                        appendToTerminal(`已上传: ${file.name}\n`, 'stdout');
+                    } else if (file.name.endsWith('.zip')) {
+                        // 处理 ZIP 文件
+                        await handleZipUpload(file);
+                    }
+                }
+                
+                await refreshFileTree();
+            });
+        }
+        
+        // 处理 ZIP 文件上传
+        async function handleZipUpload(file) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+                
+                // 使用 Pyodide 的 zipfile 模块解压
+                await pyodide.runPythonAsync(`
+                    import zipfile
+                    import io
+                    from js import uint8Array
+                    
+                    data = bytes(uint8Array.to_py())
+                    with zipfile.ZipFile(io.BytesIO(data), 'r') as zip_ref:
+                        zip_ref.extractall('/workspace')
+                `);
+                
+                appendToTerminal(`已解压: ${file.name}\n`, 'stdout');
+            } catch (error) {
+                appendToTerminal(`解压失败: ${error.message}\n`, 'stderr');
+            }
+        }
+        
+        // 面板大小调整
+        function setupPanelResize() {
+            const resizeHandle = document.getElementById('panel-resize-handle');
+            const panelContainer = document.getElementById('panel-container');
+            const mainContent = document.getElementById('main-content');
+            const editorContainer = document.getElementById('editor-container');
+            
+            let isDragging = false;
+            let startY = 0;
+            let startHeight = 0;
+            
+            resizeHandle.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startY = e.clientY;
+                startHeight = panelContainer.offsetHeight;
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+            
+            resizeHandle.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                startY = e.touches[0].clientY;
+                startHeight = panelContainer.offsetHeight;
+                document.addEventListener('touchmove', onTouchMove, { passive: false });
+                document.addEventListener('touchend', onTouchEnd);
+            });
+            
+            function onMouseMove(e) {
+                if (!isDragging) return;
+                updatePanelHeight(e.clientY);
+            }
+            
+            function onMouseUp() {
+                isDragging = false;
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            }
+            
+            function onTouchMove(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                updatePanelHeight(e.touches[0].clientY);
+            }
+            
+            function onTouchEnd() {
+                isDragging = false;
+                document.removeEventListener('touchmove', onTouchMove);
+                document.removeEventListener('touchend', onTouchEnd);
+            }
+            
+            function updatePanelHeight(clientY) {
+                const deltaY = startY - clientY;
+                const newHeight = Math.max(100, Math.min(400, startHeight + deltaY));
+                panelContainer.style.height = `${newHeight}px`;
+            }
+        }
+        
+        // 云存储相关功能
+        async function saveProjectToCloud() {
+            try {
+                const projectData = await serializeProject();
+                const md5Hash = md5(projectData);
+                // 使用 upload 函数上传
+                // 这里需要调用 tools.js 中的 upload 函数
+                if (window.upload) {
+                    window.upload(projectData, 'txt');
+                }
+            } catch (error) {
+                console.error('保存项目到云存储失败:', error);
+            }
+        }
+        
+        async function loadProjectFromCloud(md5Hash) {
+            try {
+                // 使用 info 函数获取内容
+                if (window.info) {
+                    const content = await window.info();
+                    if (content) {
+                        await deserializeProject(content);
+                    }
+                }
+            } catch (error) {
+                console.error('从云存储加载项目失败:', error);
+            }
+        }
+        
+        async function serializeProject() {
+            const files = [];
+            await collectFiles('/workspace', files);
+            
+            // 按照要求的格式序列化
+            let content = `${files.length}\n`;
+            files.forEach(file => {
+                const fileContent = pyodide.FS.readFile(file.path, { encoding: 'utf8' });
+                const fileMd5 = md5(fileContent);
+                content += `${file.path.replace('/workspace/', '')}\n${fileMd5}\n`;
+            });
+            
+            return content;
+        }
+        
+        async function deserializeProject(content) {
+            const lines = content.trim().split('\n');
+            let index = 0;
+            const fileCount = parseInt(lines[index++]);
+            
+            for (let i = 0; i < fileCount; i++) {
+                const filePath = lines[index++];
+                const fileMd5 = lines[index++];
+                
+                // 这里应该根据 md5 下载文件内容
+                // 但当前工具不支持直接下载，这里只是示例
+                const fullPath = `/workspace/${filePath}`;
+                await createPath(fullPath);
+                const encoder = new TextEncoder();
+                pyodide.FS.writeFile(fullPath, encoder.encode(''));
+            }
+            
+            await refreshFileTree();
+        }
+        
+        async function collectFiles(path, files) {
+            const entries = pyodide.FS.readdir(path);
+            
+            for (const entry of entries) {
+                if (entry === '.' || entry === '..') continue;
+                
+                const fullPath = path === '/' ? `/${entry}` : `${path}/${entry}`;
+                const stat = pyodide.FS.stat(fullPath);
+                
+                if (pyodide.FS.isDir(stat)) {
+                    await collectFiles(fullPath, files);
+                } else {
+                    files.push({
+                        path: fullPath,
+                        type: 'file'
+                    });
+                }
+            }
+        }
+        
+        async function createPath(filePath) {
+            const parts = filePath.split('/').filter(p => p);
+            let currentPath = '';
+            
+            for (let i = 0; i < parts.length - 1; i++) {
+                currentPath += '/' + parts[i];
+                try {
+                    pyodide.FS.stat(currentPath);
+                } catch {
+                    pyodide.FS.mkdir(currentPath);
+                }
+            }
+        }
+        
+        // 初始化应用
+        async function initApp() {
+            // 显示加载动画
+            loadingOverlay.style.display = 'flex';
+            
+            try {
+                // 加载 Pyodide
+                loadingText.textContent = '正在加载 Pyodide...';
+                loadingProgress.style.width = '10%';
+                
+                pyodide = await loadPyodide({
+                    indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.0/full/',
+                    progressCallback: (progress) => {
+                        loadingProgress.style.width = `${Math.round(progress * 100)}%`;
+                        loadingText.textContent = `正在加载 Python... ${Math.round(progress * 100)}%`;
+                    }
+                });
+                
+                // 安装 micropip
+                loadingText.textContent = '正在安装 micropip...';
+                loadingProgress.style.width = '90%';
+                await pyodide.loadPackage(['micropip']);
+                
+                // 创建工作目录
+                loadingText.textContent = '正在初始化文件系统...';
+                try {
+                    pyodide.FS.stat('/workspace');
+                } catch {
+                    pyodide.FS.mkdirTree('/workspace');
+                }
+                
+                // 创建示例文件
+                const mainPyPath = '/workspace/main.py';
+                try {
+                    pyodide.FS.stat(mainPyPath);
+                } catch {
+                    const encoder = new TextEncoder();
+                    pyodide.FS.writeFile(mainPyPath, encoder.encode('print("Hello, Pyodide IDE! 🐍")\n'));
+                }
+                
+                loadingProgress.style.width = '100%';
+                loadingText.textContent = '初始化完成！';
+                
+                // 初始化 UI 组件
+                initMonaco();
+                initFileTree();
+                setupDragAndDrop();
+                setupPanelResize();
+                
+                // 刷新文件树
+                await refreshFileTree();
+                
+                // 隐藏加载动画
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none';
+                }, 500);
+            } catch (error) {
+                console.error('初始化失败:', error);
+                loadingText.textContent = `初始化失败: ${error.message}`;
+            }
+        }
+        
+        // 事件监听
+        runBtn.addEventListener('click', runPython);
+        saveBtn.addEventListener('click', saveFile);
+        newFileBtn.addEventListener('click', createNewFile);
+        newFolderBtn.addEventListener('click', createNewFolder);
+        explorerBtn.addEventListener('click', () => switchSidebarPanel('explorer'));
+        packagesBtn.addEventListener('click', () => switchSidebarPanel('packages'));
+        installBtn.addEventListener('click', installPackage);
+        clearTerminalBtn.addEventListener('click', () => { panelContent.innerHTML = ''; });
+        
+        // 上下文菜单事件
+        document.getElementById('menu-new-file').addEventListener('click', () => {
+            createNewFile();
+            hideContextMenu();
+        });
+        
+        document.getElementById('menu-new-folder').addEventListener('click', () => {
+            createNewFolder();
+            hideContextMenu();
+        });
+        
+        document.getElementById('menu-rename').addEventListener('click', () => {
+            renameItem();
+            hideContextMenu();
+        });
+        
+        document.getElementById('menu-delete').addEventListener('click', () => {
+            deleteItem();
+            hideContextMenu();
+        });
+        
+        // 点击空白处隐藏上下文菜单
+        document.addEventListener('click', (e) => {
+            if (!contextMenu.contains(e.target)) {
+                hideContextMenu();
+            }
+        });
+        
+        // 初始化
+        initApp();
+    </script>
+</body>
+</html>
