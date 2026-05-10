@@ -7,7 +7,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cascadia+Code&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;500;600&display=swap" rel="stylesheet">
 
     <style>
         * {
@@ -20,6 +20,9 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: #1e1e1e;
             color: #cccccc;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             height: 100vh;
             overflow: hidden;
             user-select: text;
@@ -76,6 +79,11 @@
             flex: 1;
             overflow-y: auto;
             padding: 8px 0;
+        }
+
+        /* 文件树节点容器 */
+        .tree-node {
+            display: block;
         }
 
         /* 文件树节点 */
@@ -145,10 +153,17 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            font-family: "Cascadia Code", Consolas, "Courier New", monospace;
+            font-weight: 400;
+            letter-spacing: 0.02em;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .tree-children {
             display: none;
+            padding-left: 16px;
         }
 
         .tree-children.expanded {
@@ -534,6 +549,8 @@
             -webkit-user-select: text !important;
             touch-action: pan-y pinch-zoom !important;
             cursor: text !important;
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: 'tnum';
         }
 
         .monaco-editor textarea,
@@ -542,6 +559,11 @@
             -webkit-user-select: text !important;
             touch-action: auto !important;
             cursor: text !important;
+            font-family: "Cascadia Code", Consolas, "Courier New", monospace !important;
+            font-size: 14px !important;
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: 'tnum';
+            letter-spacing: 0 !important;
         }
     </style>
 </head>
@@ -720,6 +742,17 @@
 
             const rootItem = createTreeItem(WORKSPACE, true);
             fileTree.appendChild(rootItem);
+
+            // 默认展开根目录
+            const rootNode = fileTree.querySelector('.tree-node');
+            if (rootNode) {
+                const arrow = rootNode.querySelector('.tree-arrow');
+                const children = rootNode.querySelector('.tree-children');
+                if (arrow && children) {
+                    arrow.classList.add('expanded');
+                    children.classList.add('expanded');
+                }
+            }
         }
 
         /**
@@ -729,6 +762,11 @@
             const FS = window.pyodide.FS;
             const name = path.split('/').pop();
 
+            // 创建节点容器（包含 item 和 children）
+            const node = document.createElement('div');
+            node.className = 'tree-node';
+
+            // 创建项目行
             const item = document.createElement('div');
             item.className = 'tree-item';
             item.dataset.path = path;
@@ -764,7 +802,10 @@
             item.addEventListener('touchend', handleTouchEnd);
             item.addEventListener('touchmove', handleTouchMove);
 
-            // 子节点
+            // 添加到节点容器
+            node.appendChild(item);
+
+            // 子节点（放在 node 下，不是 item 下）
             if (isDir) {
                 const children = document.createElement('div');
                 children.className = 'tree-children';
@@ -784,10 +825,10 @@
                     }
                 } catch (e) {}
 
-                item.appendChild(children);
+                node.appendChild(children);
             }
 
-            return item;
+            return node;
         }
 
         /**
@@ -801,7 +842,9 @@
 
             if (isDir) {
                 const arrow = e.currentTarget.querySelector('.tree-arrow');
-                const children = e.currentTarget.querySelector('.tree-children');
+                // 找到父节点 .tree-node，然后查找其中的 .tree-children
+                const node = e.currentTarget.parentElement;
+                const children = node.querySelector('.tree-children');
                 arrow.classList.toggle('expanded');
                 children.classList.toggle('expanded');
             } else if (path.endsWith('.py')) {
@@ -1072,6 +1115,14 @@
          */
         function closeTab(index) {
             const tab = openTabs[index];
+
+            if (editor) {
+                const currentModel = editor.getModel();
+                if (currentModel) {
+                    currentModel.dispose();
+                }
+            }
+
             openTabs.splice(index, 1);
             modifiedFiles.delete(tab.path);
 
@@ -1082,6 +1133,7 @@
                     loadTabContent(openTabs[newIndex]);
                 } else {
                     activeTabId = null;
+                    editor.setModel(null);
                 }
             }
 
@@ -1094,15 +1146,22 @@
         function loadTabContent(tab) {
             if (!editor) return;
 
+            const currentModel = editor.getModel();
+            if (currentModel && activeTabId) {
+                const currentTab = openTabs.find(t => t.path === activeTabId);
+                if (currentTab) {
+                    currentTab.content = currentModel.getValue();
+                }
+            }
+
             const model = monaco.editor.createModel(
                 tab.content,
                 'python',
-                monaco.Uri.parse(tab.path)
+                monaco.Uri.parse('file://' + tab.path)
             );
 
             editor.setModel(model);
 
-            // 监听内容变化
             model.onDidChangeContent(() => {
                 tab.content = model.getValue();
                 if (!modifiedFiles.has(tab.path)) {
@@ -1142,6 +1201,9 @@
                 theme: 'vsCodeDarkModern',
                 fontSize: 14,
                 fontFamily: '"Cascadia Code", Consolas, "Courier New", monospace',
+                fontLigatures: false,
+                letterSpacing: 0,
+                lineHeight: 22,
                 minimap: { enabled: true },
                 automaticLayout: true,
                 scrollbar: {
