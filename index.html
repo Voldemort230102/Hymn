@@ -2,13 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Python 在线运行器</title>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;500;600&display=swap" rel="stylesheet">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Online Runner</title>
     <style>
         * {
             margin: 0;
@@ -17,335 +12,159 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #1e1e1e;
-            color: #cccccc;
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background-color: #252526;
+            color: #CCCCCC;
             height: 100vh;
-            overflow: hidden;
-            user-select: text;
-            -webkit-user-select: text;
-        }
-
-        /* 主布局 */
-        .app-container {
-            display: flex;
-            height: 100vh;
-        }
-
-        /* 侧边栏 */
-        .sidebar {
-            width: 250px;
-            background: #252526;
             display: flex;
             flex-direction: column;
-            border-right: 1px solid #3e3e3e;
-            flex-shrink: 0;
         }
 
-        .sidebar-header {
-            padding: 12px 16px;
-            font-size: 11px;
-            text-transform: uppercase;
-            color: #858585;
-            letter-spacing: 0.5px;
-            border-bottom: 1px solid #3e3e3e;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .sidebar-toggle {
-            background: none;
-            border: none;
-            color: #858585;
-            cursor: pointer;
-            font-size: 16px;
-            padding: 4px;
-            min-width: 44px;
-            min-height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .sidebar-toggle:hover {
-            color: #cccccc;
-        }
-
-        .file-tree {
-            flex: 1;
-            overflow-y: auto;
-            padding: 8px 0;
-        }
-
-        /* 文件树节点容器 */
-        .tree-node {
-            display: block;
-        }
-
-        /* 文件树节点 */
-        .tree-item {
-            display: flex;
-            align-items: center;
-            padding: 4px 8px 4px 0;
-            cursor: pointer;
-            user-select: none;
-            -webkit-user-select: none;
-            min-height: 44px;
-        }
-
-        .tree-item:hover {
-            background: #2a2d2e;
-        }
-
-        .tree-item.selected {
-            background: #094771;
-        }
-
-        .tree-item-content {
-            display: flex;
-            align-items: center;
-            flex: 1;
-            padding-left: 8px;
-            overflow: hidden;
-        }
-
-        .tree-arrow {
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            color: #858585;
-            flex-shrink: 0;
-            transition: transform 0.1s;
-        }
-
-        .tree-arrow.expanded {
-            transform: rotate(90deg);
-        }
-
-        .tree-arrow.hidden {
-            visibility: hidden;
-        }
-
-        .tree-icon {
-            width: 16px;
-            height: 16px;
-            margin-right: 6px;
-            flex-shrink: 0;
-        }
-
-        .tree-icon.folder {
-            color: #DCAD6B;
-        }
-
-        .tree-icon.file {
-            color: #519ABA;
-        }
-
-        .tree-name {
-            font-size: 13px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-family: "Cascadia Code", Consolas, "Courier New", monospace;
-            font-weight: 400;
-            letter-spacing: 0.02em;
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        .tree-children {
-            display: none;
-            padding-left: 16px;
-        }
-
-        .tree-children.expanded {
-            display: block;
-        }
-
-        /* 主内容区 */
-        .main-content {
-            flex: 1;
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #252526;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-        }
-
-        /* 顶部栏 */
-        .header {
-            display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
-            padding: 8px 16px;
-            background: #2d2d2d;
-            border-bottom: 1px solid #3e3e3e;
+            z-index: 1000;
         }
 
-        .header-title {
+        #loading-text {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        #loading-status {
             font-size: 14px;
-            color: #cccccc;
+            color: #888888;
+            margin-bottom: 15px;
+            min-height: 20px;
+            text-align: center;
         }
 
-        #runBtn {
-            background: #007ACC;
+        #progress-bar {
+            width: 400px;
+            height: 12px;
+            background-color: #3C3C3C;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        #progress-fill {
+            height: 100%;
+            background-color: #007ACC;
+            width: 0%;
+            transition: width 0.15s ease;
+            border-radius: 6px;
+        }
+
+        #progress-info {
+            margin-top: 10px;
+            font-size: 14px;
+            display: flex;
+            gap: 20px;
+        }
+
+        #progress-percent {
+            font-weight: bold;
+            color: #007ACC;
+        }
+
+        #progress-speed {
+            color: #888888;
+        }
+
+        #cdn-info {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #666666;
+            text-align: center;
+        }
+
+        #retry-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #007ACC;
             color: white;
             border: none;
-            padding: 8px 20px;
+            border-radius: 4px;
+            cursor: pointer;
             font-size: 14px;
-            cursor: pointer;
-            border-radius: 4px;
-            min-width: 44px;
-            min-height: 44px;
-            font-weight: 500;
+            display: none;
         }
 
-        #runBtn:hover {
-            background: #005a9e;
+        #retry-btn:hover {
+            background-color: #005A9E;
         }
 
-        #runBtn:disabled {
-            background: #4a4a4a;
-            cursor: not-allowed;
-        }
-
-        /* Tab 栏 */
-        .tab-bar {
-            display: flex;
-            background: #252526;
-            border-bottom: 1px solid #3e3e3e;
-            overflow-x: auto;
-            flex-shrink: 0;
-        }
-
-        .tab-bar::-webkit-scrollbar {
-            height: 4px;
-        }
-
-        .tab-bar::-webkit-scrollbar-thumb {
-            background: #4a4a4a;
-        }
-
-        .tab {
-            display: flex;
-            align-items: center;
-            padding: 8px 16px;
-            background: #2d2d2d;
-            border-right: 1px solid #3e3e3e;
-            cursor: pointer;
-            min-height: 44px;
-            font-size: 13px;
-            white-space: nowrap;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-        .tab:hover {
-            background: #333333;
-        }
-
-        .tab.active {
-            background: #1e1e1e;
-            border-bottom: 2px solid #007ACC;
-        }
-
-        .tab-name {
-            max-width: 150px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .tab-modified {
-            width: 8px;
-            height: 8px;
-            background: #cccccc;
-            border-radius: 50%;
-            margin-left: 8px;
-        }
-
-        .tab-close {
-            margin-left: 8px;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            font-size: 16px;
-            color: #858585;
-        }
-
-        .tab-close:hover {
-            background: #4a4a4a;
-            color: #cccccc;
-        }
-
-        /* 编辑器区域 */
-        .editor-area {
-            flex: 1;
-            display: flex;
+        #editor-container {
+            display: none;
             flex-direction: column;
-            overflow: hidden;
-        }
-
-        .editor-container {
-            flex: 1;
-            overflow: hidden;
-        }
-
-        /* Monaco Editor 容器 */
-        .code-editor {
-            width: 100%;
             height: 100%;
         }
 
-        /* 欢迎页 */
-        .welcome-page {
-            flex: 1;
+        #toolbar {
             display: flex;
-            flex-direction: column;
+            justify-content: flex-end;
+            padding: 10px;
+            background-color: #1E1E1E;
+            border-bottom: 1px solid #3C3C3C;
+        }
+
+        #run-btn {
+            width: 44px;
+            height: 44px;
+            background-color: #007ACC;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
             align-items: center;
             justify-content: center;
-            color: #858585;
-            font-size: 16px;
+            transition: background-color 0.2s;
         }
 
-        .welcome-page.hidden {
-            display: none;
+        #run-btn:hover {
+            background-color: #005A9E;
         }
 
-        /* 输出区域 */
-        .output-section {
-            height: 200px;
-            border-top: 1px solid #3e3e3e;
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
+        #run-btn:active {
+            background-color: #004070;
         }
 
-        .output-header {
-            padding: 8px 16px;
-            background: #252526;
-            font-size: 12px;
-            color: #858585;
-            border-bottom: 1px solid #3e3e3e;
-        }
-
-        #output {
+        #code-input {
             flex: 1;
-            background: #0C0C0C;
+            background-color: #1E1E1E;
             color: #CCCCCC;
-            font-family: "Cascadia Code", "Consolas", "Monaco", "Courier New", monospace;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 14px;
+            padding: 15px;
+            border: none;
+            resize: none;
             line-height: 1.5;
-            padding: 12px 16px;
+        }
+
+        #code-input:focus {
+            outline: none;
+        }
+
+        #output-container {
+            height: 200px;
+            background-color: #0C0C0C;
+            color: #CCCCCC;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            padding: 15px;
             overflow-y: auto;
+            border-top: 1px solid #3C3C3C;
             white-space: pre-wrap;
             word-wrap: break-word;
         }
@@ -355,1046 +174,204 @@
         }
 
         .stderr {
-            color: #ff6b6b;
-        }
-
-        /* 上下文菜单 */
-        .context-menu {
-            position: fixed;
-            background: #252526;
-            border: 1px solid #3e3e3e;
-            border-radius: 4px;
-            padding: 4px 0;
-            min-width: 160px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-            z-index: 10000;
-            display: none;
-        }
-
-        .context-menu.visible {
-            display: block;
-        }
-
-        .context-menu-item {
-            padding: 8px 16px;
-            font-size: 13px;
-            cursor: pointer;
-            min-height: 36px;
-            display: flex;
-            align-items: center;
-        }
-
-        .context-menu-item:hover {
-            background: #094771;
-        }
-
-        .context-menu-separator {
-            height: 1px;
-            background: #3e3e3e;
-            margin: 4px 0;
-        }
-
-        /* 模态对话框 */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 10001;
-        }
-
-        .modal-overlay.visible {
-            display: flex;
-        }
-
-        .modal {
-            background: #252526;
-            border: 1px solid #3e3e3e;
-            border-radius: 8px;
-            padding: 20px;
-            min-width: 300px;
-            max-width: 400px;
-        }
-
-        .modal-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: #cccccc;
-        }
-
-        .modal-input {
-            width: 100%;
-            padding: 10px 12px;
-            background: #1e1e1e;
-            border: 1px solid #3e3e3e;
-            border-radius: 4px;
-            color: #cccccc;
-            font-size: 14px;
-            margin-bottom: 16px;
-        }
-
-        .modal-input:focus {
-            outline: none;
-            border-color: #007ACC;
-        }
-
-        .modal-buttons {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-        }
-
-        .modal-btn {
-            padding: 8px 16px;
-            border-radius: 4px;
-            border: none;
-            font-size: 14px;
-            cursor: pointer;
-            min-width: 44px;
-            min-height: 36px;
-        }
-
-        .modal-btn.primary {
-            background: #007ACC;
-            color: white;
-        }
-
-        .modal-btn.primary:hover {
-            background: #005a9e;
-        }
-
-        .modal-btn.secondary {
-            background: #3e3e3e;
-            color: #cccccc;
-        }
-
-        .modal-btn.secondary:hover {
-            background: #4a4a4a;
-        }
-
-        /* 加载遮罩 */
-        #loadingOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10002;
-        }
-
-        #loadingOverlay.hidden {
-            display: none;
-        }
-
-        .loading-text {
-            font-size: 1.2rem;
-            color: #cccccc;
-            margin-bottom: 20px;
-        }
-
-        .progress-bar {
-            width: 300px;
-            height: 8px;
-            background: #3e3e3e;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: #007ACC;
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        /* Monaco 虚拟键盘按钮 */
-        .monaco-editor .virtual-keyboard-toggle,
-        .monaco-editor .virtual-keyboard-widget,
-        .monaco-editor .keyboard-widget {
-            display: none !important;
-        }
-
-        textarea.iPadShowKeyboard {
-            opacity: 0 !important;
-            pointer-events: auto !important;
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            border: none !important;
-            resize: none !important;
-            overflow: hidden !important;
-            background: transparent !important;
-            color: transparent !important;
-            caret-color: transparent !important;
-        }
-
-        /* 触摸选择支持 */
-        .monaco-editor {
-            user-select: text !important;
-            -webkit-user-select: text !important;
-            touch-action: pan-y pinch-zoom !important;
-            cursor: text !important;
-            font-variant-numeric: tabular-nums;
-            font-feature-settings: 'tnum';
-        }
-
-        .monaco-editor textarea,
-        .monaco-editor .inputarea {
-            user-select: text !important;
-            -webkit-user-select: text !important;
-            touch-action: auto !important;
-            cursor: text !important;
-            font-family: "Cascadia Code", Consolas, "Courier New", monospace !important;
-            font-size: 14px !important;
-            font-variant-numeric: tabular-nums;
-            font-feature-settings: 'tnum';
-            letter-spacing: 0 !important;
+            color: #FF0000;
         }
     </style>
 </head>
 <body>
-    <!-- 加载遮罩 -->
-    <div id="loadingOverlay">
-        <div class="loading-text">正在初始化 Python 运行时...</div>
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
+    <div id="loading-overlay">
+        <div id="loading-text">正在初始化 Python 运行时...</div>
+        <div id="loading-status">正在检测本地文件...</div>
+        <div id="progress-bar">
+            <div id="progress-fill"></div>
         </div>
+        <div id="progress-info">
+            <span id="progress-percent">0%</span>
+            <span id="progress-speed"></span>
+        </div>
+        <div id="cdn-info"></div>
+        <button id="retry-btn" onclick="start()">重试加载</button>
     </div>
 
-    <!-- 模态对话框：输入框 -->
-    <div class="modal-overlay" id="inputModal">
-        <div class="modal">
-            <div class="modal-title" id="inputModalTitle">输入</div>
-            <input type="text" class="modal-input" id="modalInput" placeholder="请输入...">
-            <div class="modal-buttons">
-                <button class="modal-btn secondary" id="modalCancel">取消</button>
-                <button class="modal-btn primary" id="modalConfirm">确定</button>
-            </div>
+    <div id="editor-container">
+        <div id="toolbar">
+            <button id="run-btn">运行</button>
         </div>
+        <textarea id="code-input" spellcheck="false">print("Hello, Pyodide IDE! 🐍")</textarea>
+        <div id="output-container"></div>
     </div>
 
-    <!-- 模态对话框：确认 -->
-    <div class="modal-overlay" id="confirmModal">
-        <div class="modal">
-            <div class="modal-title" id="confirmModalTitle">确认</div>
-            <div class="modal-buttons">
-                <button class="modal-btn secondary" id="confirmCancel">取消</button>
-                <button class="modal-btn primary" id="confirmOk">确定</button>
-            </div>
-        </div>
-    </div>
+    <script>
+        let pyodide;
+        const LOCAL_PATH = "./pyodide/";
+        const CDN_PATH = "https://cdn.jsdelivr.net/pyodide/v0.27.0/full/";
 
-    <!-- 上下文菜单 -->
-    <div class="context-menu" id="contextMenu">
-        <div class="context-menu-item" data-action="newFile">新建文件</div>
-        <div class="context-menu-item" data-action="newFolder">新建文件夹</div>
-        <div class="context-menu-separator"></div>
-        <div class="context-menu-item" data-action="rename">重命名</div>
-        <div class="context-menu-item" data-action="delete">删除</div>
-    </div>
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
+        const loadingStatus = document.getElementById('loading-status');
+        const progressFill = document.getElementById('progress-fill');
+        const progressPercent = document.getElementById('progress-percent');
+        const progressSpeed = document.getElementById('progress-speed');
+        const cdnInfo = document.getElementById('cdn-info');
+        const retryBtn = document.getElementById('retry-btn');
+        const editorContainer = document.getElementById('editor-container');
+        const codeInput = document.getElementById('code-input');
+        const runBtn = document.getElementById('run-btn');
+        const outputContainer = document.getElementById('output-container');
 
-    <!-- 主应用 -->
-    <div class="app-container">
-        <!-- 侧边栏：文件浏览器 -->
-        <div class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <span>资源管理器</span>
-                <button class="sidebar-toggle" id="sidebarToggle">☰</button>
-            </div>
-            <div class="file-tree" id="fileTree"></div>
-        </div>
+        let startTime;
+        let lastProgress = 0;
+        let lastTime = 0;
 
-        <!-- 主内容区 -->
-        <div class="main-content">
-            <!-- 顶部栏 -->
-            <div class="header">
-                <span class="header-title">Python 在线运行器</span>
-                <button id="runBtn" disabled>运行</button>
-            </div>
-
-            <!-- Tab 栏 -->
-            <div class="tab-bar" id="tabBar"></div>
-
-            <!-- 编辑器区域 -->
-            <div class="editor-area">
-                <div class="welcome-page" id="welcomePage">
-                    选择一个文件开始编辑
-                </div>
-                <div class="editor-container" id="editorContainer" style="display: none;">
-                    <div class="code-editor" id="monacoEditor"></div>
-                </div>
-            </div>
-
-            <!-- 输出区域 -->
-            <div class="output-section">
-                <div class="output-header">输出</div>
-                <div id="output"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Pyodide -->
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.27.0/full/pyodide.js"></script>
-
-    <!-- Monaco Editor -->
-    <script type="module">
-        import * as monaco from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/+esm';
-
-        // 全局状态
-        window.pyodide = null;
-        let editor = null;
-        let openTabs = [];
-        let activeTabId = null;
-        let modifiedFiles = new Set();
-        let contextMenuTarget = null;
-        let longPressTimer = null;
-        let touchHandled = false; // 防止触摸后 click 事件重复触发
-
-        // DOM 元素
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        const progressFill = document.getElementById('progressFill');
-        const runBtn = document.getElementById('runBtn');
-        const output = document.getElementById('output');
-        const fileTree = document.getElementById('fileTree');
-        const tabBar = document.getElementById('tabBar');
-        const welcomePage = document.getElementById('welcomePage');
-        const editorContainer = document.getElementById('editorContainer');
-        const contextMenu = document.getElementById('contextMenu');
-        const inputModal = document.getElementById('inputModal');
-        const confirmModal = document.getElementById('confirmModal');
-
-        // 文件系统相关常量
-        const WORKSPACE = '/workspace';
-
-        /**
-         * 初始化 Pyodide 和虚拟文件系统
-         */
-        async function initPyodide() {
+        async function checkLocalFileExists(filename) {
             try {
-                progressFill.style.width = '30%';
-                window.pyodide = await loadPyodide({
-                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.27.0/full/"
+                const response = await fetch(LOCAL_PATH + filename, { method: 'HEAD' });
+                return response.ok;
+            } catch {
+                return false;
+            }
+        }
+
+        async function determineBestSource() {
+            const wasmExists = await checkLocalFileExists('pyodide.asm.wasm');
+            const jsExists = await checkLocalFileExists('pyodide.js');
+            
+            if (wasmExists && jsExists) {
+                return { path: LOCAL_PATH, source: '本地文件' };
+            }
+            
+            return { path: CDN_PATH, source: 'CDN' };
+        }
+
+        async function initPyodide(sourcePath, sourceName) {
+            try {
+                cdnInfo.textContent = `加载来源: ${sourceName}`;
+
+                startTime = Date.now();
+                lastTime = startTime;
+
+                loadingStatus.textContent = '正在加载 Pyodide 核心...';
+
+                pyodide = await window.loadPyodide({
+                    indexURL: sourcePath,
+                    fullStdLib: false,
+                    progressCallback: (progress) => {
+                        const now = Date.now();
+                        const timeDelta = (now - lastTime) / 1000;
+                        const progressDelta = progress - lastProgress;
+
+                        let speed = 0;
+                        if (timeDelta > 0) {
+                            speed = (progressDelta / timeDelta * 100).toFixed(1);
+                        }
+
+                        const percent = Math.round(progress * 100);
+                        progressFill.style.width = percent + '%';
+                        progressPercent.textContent = percent + '%';
+
+                        if (speed > 0) {
+                            progressSpeed.textContent = `${speed}%/s`;
+                        }
+
+                        lastProgress = progress;
+                        lastTime = now;
+                    },
+                    fetchFile: async (url, options) => {
+                        const fileName = url.split('/').pop();
+                        loadingStatus.textContent = `正在加载: ${fileName}...`;
+                        
+                        const response = await fetch(url, {
+                            ...options,
+                            cache: 'force-cache'
+                        });
+                        
+                        return response;
+                    }
                 });
 
-                progressFill.style.width = '60%';
+                loadingStatus.textContent = '初始化运行时...';
+                await pyodide.loadPackage(['micropip']);
 
-                // 初始化文件系统
-                await initFileSystem();
+                pyodide.setStdout({
+                    batched: (text) => {
+                        const div = document.createElement('div');
+                        div.className = 'stdout';
+                        div.textContent = text;
+                        outputContainer.appendChild(div);
+                        outputContainer.scrollTop = outputContainer.scrollHeight;
+                    }
+                });
 
-                progressFill.style.width = '100%';
-                setTimeout(() => {
-                    loadingOverlay.classList.add('hidden');
-                    runBtn.disabled = false;
-                }, 300);
+                pyodide.setStderr({
+                    batched: (text) => {
+                        const div = document.createElement('div');
+                        div.className = 'stderr';
+                        div.textContent = text;
+                        outputContainer.appendChild(div);
+                        outputContainer.scrollTop = outputContainer.scrollHeight;
+                    }
+                });
+
+                loadingOverlay.style.display = 'none';
+                editorContainer.style.display = 'flex';
+                return true;
+
             } catch (error) {
-                loadingOverlay.querySelector('.loading-text').textContent = 'Python 运行时初始化失败';
-                progressFill.style.background = '#ff6b6b';
-                console.error('Pyodide init error:', error);
+                return false;
             }
         }
 
-        /**
-         * 初始化虚拟文件系统
-         */
-        async function initFileSystem() {
-            const FS = window.pyodide.FS;
+        async function start() {
+            retryBtn.style.display = 'none';
+            progressFill.style.width = '0%';
+            progressPercent.textContent = '0%';
+            progressSpeed.textContent = '';
 
-            // 创建工作目录
-            try {
-                FS.mkdir(WORKSPACE);
-            } catch (e) {
-                // 目录已存在，忽略
-            }
+            const { path, source } = await determineBestSource();
+            loadingStatus.textContent = `正在从 ${source} 加载...`;
 
-            // 创建示例文件
-            const mainPyPath = `${WORKSPACE}/main.py`;
-            try {
-                FS.writeFile(mainPyPath, 'print("Hello, Pyodide IDE! 🐍")');
-            } catch (e) {
-                // 文件已存在，忽略
-            }
-
-            // 渲染文件树
-            renderFileTree();
-        }
-
-        /**
-         * 渲染文件树
-         */
-        function renderFileTree() {
-            const FS = window.pyodide.FS;
-            fileTree.innerHTML = '';
-
-            const rootItem = createTreeItem(WORKSPACE, true);
-            fileTree.appendChild(rootItem);
-
-            // 默认展开根目录
-            const rootNode = fileTree.querySelector('.tree-node');
-            if (rootNode) {
-                const arrow = rootNode.querySelector('.tree-arrow');
-                const children = rootNode.querySelector('.tree-children');
-                if (arrow && children) {
-                    arrow.classList.add('expanded');
-                    children.classList.add('expanded');
+            const success = await initPyodide(path, source);
+            
+            if (!success) {
+                if (source === '本地文件') {
+                    loadingStatus.textContent = '本地文件加载失败，尝试从 CDN 加载...';
+                    const cdnSuccess = await initPyodide(CDN_PATH, 'CDN');
+                    if (!cdnSuccess) {
+                        showError('所有加载源都失败了，请检查网络连接');
+                    }
+                } else {
+                    showError('CDN 加载失败，请检查网络连接');
                 }
             }
         }
 
-        /**
-         * 创建文件树节点
-         */
-        function createTreeItem(path, isDir) {
-            const FS = window.pyodide.FS;
-            const name = path.split('/').pop();
-
-            // 创建节点容器（包含 item 和 children）
-            const node = document.createElement('div');
-            node.className = 'tree-node';
-
-            // 创建项目行
-            const item = document.createElement('div');
-            item.className = 'tree-item';
-            item.dataset.path = path;
-            item.dataset.isDir = isDir;
-
-            // 箭头（文件夹有，文件没有）
-            const arrow = document.createElement('span');
-            arrow.className = 'tree-arrow' + (isDir ? '' : ' hidden');
-            arrow.textContent = '▶';
-            item.appendChild(arrow);
-
-            // 图标
-            const icon = document.createElement('span');
-            icon.className = 'tree-icon ' + (isDir ? 'folder' : 'file');
-            icon.innerHTML = isDir
-                ? '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h2.764c.958 0 1.76.56 2.311 1.184C7.985 3.648 8.48 4 9 4h4.5A1.5 1.5 0 0 1 15 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5v-9z"/></svg>'
-                : '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.414a1.5 1.5 0 0 0-.44-1.06L9.44.146A1.5 1.5 0 0 0 8.586 0H4zm5 3V4h4v9H9z"/></svg>';
-            item.appendChild(icon);
-
-            // 名称
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'tree-name';
-            nameSpan.textContent = name;
-            item.appendChild(nameSpan);
-
-            // 事件处理
-            item.addEventListener('click', (e) => handleTreeItemClick(e, path, isDir));
-            item.addEventListener('dblclick', (e) => handleTreeItemDoubleClick(e, path, isDir));
-            item.addEventListener('contextmenu', (e) => handleContextMenu(e, path, isDir));
-
-            // 触摸长按
-            item.addEventListener('touchstart', (e) => handleTouchStart(e, path, isDir));
-            item.addEventListener('touchend', handleTouchEnd);
-            item.addEventListener('touchmove', handleTouchMove);
-
-            // 添加到节点容器
-            node.appendChild(item);
-
-            // 子节点（放在 node 下，不是 item 下）
-            if (isDir) {
-                const children = document.createElement('div');
-                children.className = 'tree-children';
-
-                try {
-                    const entries = FS.readdir(path);
-                    for (const entry of entries) {
-                        if (entry === '.' || entry === '..') continue;
-                        const entryPath = path === '/' ? `/${entry}` : `${path}/${entry}`;
-                        let entryIsDir = false;
-                        try {
-                            FS.stat(entryPath);
-                            entryIsDir = FS.isDir(entryPath);
-                        } catch (e) {}
-
-                        children.appendChild(createTreeItem(entryPath, entryIsDir));
-                    }
-                } catch (e) {}
-
-                node.appendChild(children);
-            }
-
-            return node;
+        function showError(message) {
+            loadingStatus.textContent = message;
+            cdnInfo.textContent = '建议：将 Pyodide 文件下载到本地 pyodide 目录以获得更快的加载速度';
+            retryBtn.style.display = 'block';
         }
 
-        /**
-         * 处理树节点点击（展开/折叠或打开文件）
-         */
-        function handleTreeItemClick(e, path, isDir) {
-            if (touchHandled) {
-                touchHandled = false;
+        runBtn.addEventListener('click', async () => {
+            if (!pyodide) {
+                alert('Python 运行时尚未准备好');
                 return;
             }
 
-            if (isDir) {
-                const arrow = e.currentTarget.querySelector('.tree-arrow');
-                // 找到父节点 .tree-node，然后查找其中的 .tree-children
-                const node = e.currentTarget.parentElement;
-                const children = node.querySelector('.tree-children');
-                arrow.classList.toggle('expanded');
-                children.classList.toggle('expanded');
-            } else if (path.endsWith('.py')) {
-                openFile(path);
-            }
-        }
+            outputContainer.innerHTML = '';
 
-        /**
-         * 处理树节点双击（保留双击功能以兼容）
-         */
-        function handleTreeItemDoubleClick(e, path, isDir) {
-            if (!isDir && path.endsWith('.py')) {
-                openFile(path);
-            }
-        }
-
-        /**
-         * 处理触摸开始（长按检测）
-         */
-        function handleTouchStart(e, path, isDir) {
-            contextMenuTarget = { path, isDir };
-
-            if (longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
-            }
-
-            longPressTimer = setTimeout(() => {
-                e.preventDefault();
-                showContextMenu(e.touches[0].clientX, e.touches[0].clientY);
-                longPressTimer = null;
-            }, 800);
-        }
-
-        /**
-         * 处理触摸移动（取消长按）
-         */
-        function handleTouchMove(e) {
-            if (longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
-            }
-        }
-
-        /**
-         * 处理触摸结束（短按打开文件）
-         */
-        function handleTouchEnd(e) {
-            if (longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
-
-                const { path, isDir } = contextMenuTarget;
-                if (!isDir && path.endsWith('.py')) {
-                    touchHandled = true;
-                    openFile(path);
-                    setTimeout(() => { touchHandled = false; }, 100);
-                }
-            }
-            contextMenuTarget = null;
-        }
-
-        /**
-         * 显示上下文菜单
-         */
-        function showContextMenu(x, y) {
-            contextMenu.classList.add('visible');
-            contextMenu.style.left = x + 'px';
-            contextMenu.style.top = y + 'px';
-
-            // 确菜单不超出屏幕
-            const rect = contextMenu.getBoundingClientRect();
-            if (rect.right > window.innerWidth) {
-                contextMenu.style.left = (x - rect.width) + 'px';
-            }
-            if (rect.bottom > window.innerHeight) {
-                contextMenu.style.top = (y - rect.height) + 'px';
-            }
-        }
-
-        /**
-         * 隐藏上下文菜单
-         */
-        function hideContextMenu() {
-            contextMenu.classList.remove('visible');
-        }
-
-        /**
-         * 处理右键菜单
-         */
-        function handleContextMenu(e, path, isDir) {
-            e.preventDefault();
-            contextMenuTarget = { path, isDir };
-            showContextMenu(e.clientX, e.clientY);
-        }
-
-        /**
-         * 上下文菜单项点击
-         */
-        contextMenu.addEventListener('click', (e) => {
-            const action = e.target.dataset.action;
-            if (!action || !contextMenuTarget) return;
-
-            const { path, isDir } = contextMenuTarget;
-            hideContextMenu();
-
-            switch (action) {
-                case 'newFile':
-                    showInputModal('新建文件', '', (name) => {
-                        if (name) {
-                            const dir = path === WORKSPACE ? WORKSPACE : getParentPath(path);
-                            const filePath = `${dir}/${name}`;
-                            window.pyodide.FS.writeFile(filePath, '');
-                            renderFileTree();
-                            if (name.endsWith('.py')) {
-                                openFile(filePath);
-                            }
-                        }
-                    });
-                    break;
-                case 'newFolder':
-                    showInputModal('新建文件夹', '', (name) => {
-                        if (name) {
-                            const dir = path === WORKSPACE ? WORKSPACE : getParentPath(path);
-                            const folderPath = `${dir}/${name}`;
-                            window.pyodide.FS.mkdir(folderPath);
-                            renderFileTree();
-                        }
-                    });
-                    break;
-                case 'rename':
-                    const currentName = path.split('/').pop();
-                    showInputModal('重命名', currentName, (newName) => {
-                        if (newName && newName !== currentName) {
-                            const parentPath = getParentPath(path);
-                            const newPath = `${parentPath}/${newName}`;
-                            window.pyodide.FS.rename(path, newPath);
-                            // 如果文件在打开的 Tab 中，更新 Tab
-                            const tab = openTabs.find(t => t.path === path);
-                            if (tab) {
-                                tab.path = newPath;
-                                tab.name = newName;
-                                updateTabBar();
-                            }
-                            renderFileTree();
-                        }
-                    });
-                    break;
-                case 'delete':
-                    showConfirmModal('确认删除', `确定要删除 "${path.split('/').pop()}" 吗？`, () => {
-                        deletePath(path);
-                        // 如果文件在打开的 Tab 中，关闭 Tab
-                        const tabIndex = openTabs.findIndex(t => t.path === path);
-                        if (tabIndex !== -1) {
-                            closeTab(tabIndex);
-                        }
-                        renderFileTree();
-                    });
-                    break;
-            }
-
-            contextMenuTarget = null;
-        });
-
-        /**
-         * 获取父路径
-         */
-        function getParentPath(path) {
-            const parts = path.split('/');
-            parts.pop();
-            return parts.join('/') || '/';
-        }
-
-        /**
-         * 删除路径
-         */
-        function deletePath(path) {
-            const FS = window.pyodide.FS;
+            const code = codeInput.value;
             try {
-                if (FS.isDir(path)) {
-                    FS.rmdir(path);
-                } else {
-                    FS.unlink(path);
-                }
-            } catch (e) {
-                console.error('Delete error:', e);
-            }
-        }
-
-        /**
-         * 打开文件
-         */
-        function openFile(path) {
-            const FS = window.pyodide.FS;
-            const name = path.split('/').pop();
-
-            // 检查是否已打开
-            let tab = openTabs.find(t => t.path === path);
-            if (!tab) {
-                // 读取文件内容
-                let content = '';
-                try {
-                    content = FS.readFile(path, 'utf8');
-                } catch (e) {}
-
-                tab = { path, name, content };
-                openTabs.push(tab);
-            }
-
-            // 激活 Tab
-            activeTabId = tab.path;
-            updateTabBar();
-            loadTabContent(tab);
-        }
-
-        /**
-         * 更新 Tab 栏
-         */
-        function updateTabBar() {
-            tabBar.innerHTML = '';
-
-            openTabs.forEach((tab, index) => {
-                const tabEl = document.createElement('div');
-                tabEl.className = 'tab' + (tab.path === activeTabId ? ' active' : '');
-                tabEl.dataset.index = index;
-
-                const nameEl = document.createElement('span');
-                nameEl.className = 'tab-name';
-                nameEl.textContent = tab.name;
-                tabEl.appendChild(nameEl);
-
-                if (modifiedFiles.has(tab.path)) {
-                    const modifiedEl = document.createElement('span');
-                    modifiedEl.className = 'tab-modified';
-                    tabEl.appendChild(modifiedEl);
-                }
-
-                const closeEl = document.createElement('span');
-                closeEl.className = 'tab-close';
-                closeEl.textContent = '×';
-                closeEl.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    closeTab(index);
-                });
-                tabEl.appendChild(closeEl);
-
-                tabEl.addEventListener('click', () => {
-                    activeTabId = tab.path;
-                    loadTabContent(tab);
-                    updateTabBar();
-                });
-
-                tabBar.appendChild(tabEl);
-            });
-
-            // 显示/隐藏欢迎页
-            if (openTabs.length === 0) {
-                welcomePage.classList.remove('hidden');
-                editorContainer.style.display = 'none';
-            } else {
-                welcomePage.classList.add('hidden');
-                editorContainer.style.display = 'block';
-            }
-        }
-
-        /**
-         * 关闭 Tab
-         */
-        function closeTab(index) {
-            const tab = openTabs[index];
-
-            if (editor) {
-                const currentModel = editor.getModel();
-                if (currentModel) {
-                    currentModel.dispose();
-                }
-            }
-
-            openTabs.splice(index, 1);
-            modifiedFiles.delete(tab.path);
-
-            if (activeTabId === tab.path) {
-                if (openTabs.length > 0) {
-                    const newIndex = Math.min(index, openTabs.length - 1);
-                    activeTabId = openTabs[newIndex].path;
-                    loadTabContent(openTabs[newIndex]);
-                } else {
-                    activeTabId = null;
-                    editor.setModel(null);
-                }
-            }
-
-            updateTabBar();
-        }
-
-        /**
-         * 加载 Tab 内容到编辑器
-         */
-        function loadTabContent(tab) {
-            if (!editor) return;
-
-            const currentModel = editor.getModel();
-            if (currentModel && activeTabId) {
-                const currentTab = openTabs.find(t => t.path === activeTabId);
-                if (currentTab) {
-                    currentTab.content = currentModel.getValue();
-                }
-            }
-
-            const model = monaco.editor.createModel(
-                tab.content,
-                'python',
-                monaco.Uri.parse('file://' + tab.path)
-            );
-
-            editor.setModel(model);
-
-            model.onDidChangeContent(() => {
-                tab.content = model.getValue();
-                if (!modifiedFiles.has(tab.path)) {
-                    modifiedFiles.add(tab.path);
-                    updateTabBar();
-                }
-            });
-        }
-
-        /**
-         * 初始化 Monaco Editor
-         */
-        function initMonaco() {
-            monaco.editor.defineTheme('vsCodeDarkModern', {
-                base: 'vs-dark',
-                inherit: true,
-                rules: [
-                    { token: 'comment', foreground: '6A9955' },
-                    { token: 'keyword', foreground: '569CD6' },
-                    { token: 'string', foreground: 'CE9178' },
-                    { token: 'number', foreground: 'B5CEA8' },
-                    { token: 'type', foreground: '4EC9B0' },
-                ],
-                colors: {
-                    'editor.background': '#1E1E1E',
-                    'editor.foreground': '#D4D4D4',
-                    'editor.lineHighlightBackground': '#2D2D2D',
-                    'editor.selectionBackground': '#264F78',
-                    'editorCursor.foreground': '#AEAFAD',
-                    'editorLineNumber.foreground': '#858585',
-                }
-            });
-
-            editor = monaco.editor.create(document.getElementById('monacoEditor'), {
-                value: '',
-                language: 'python',
-                theme: 'vsCodeDarkModern',
-                fontSize: 14,
-                fontFamily: '"Cascadia Code", Consolas, "Courier New", monospace',
-                fontLigatures: false,
-                letterSpacing: 0,
-                lineHeight: 22,
-                minimap: { enabled: true },
-                automaticLayout: true,
-                scrollbar: {
-                    alwaysConsumeMouseWheel: false,
-                    handleMouseWheel: true
-                },
-                tabSize: 4,
-                insertSpaces: true,
-                wordWrap: 'on',
-                lineNumbers: 'on',
-                renderLineHighlight: 'line',
-                contextmenu: false,
-                selectOnLineNumbers: true,
-                selectionClipboard: false,
-                enableVirtualKeyboard: false,
-                readOnly: false,
-                domReadOnly: false,
-                enableNativeTextSelection: true,
-            });
-        }
-
-        /**
-         * 显示输入模态框
-         */
-        function showInputModal(title, defaultValue, callback) {
-            const modalTitle = document.getElementById('inputModalTitle');
-            const modalInput = document.getElementById('modalInput');
-
-            modalTitle.textContent = title;
-            modalInput.value = defaultValue;
-            inputModal.classList.add('visible');
-            modalInput.focus();
-
-            const handleConfirm = () => {
-                callback(modalInput.value.trim());
-                inputModal.classList.remove('visible');
-                cleanup();
-            };
-
-            const handleCancel = () => {
-                callback(null);
-                inputModal.classList.remove('visible');
-                cleanup();
-            };
-
-            const cleanup = () => {
-                document.getElementById('modalConfirm').removeEventListener('click', handleConfirm);
-                document.getElementById('modalCancel').removeEventListener('click', handleCancel);
-                modalInput.removeEventListener('keydown', handleKeydown);
-            };
-
-            const handleKeydown = (e) => {
-                if (e.key === 'Enter') {
-                    handleConfirm();
-                } else if (e.key === 'Escape') {
-                    handleCancel();
-                }
-            };
-
-            document.getElementById('modalConfirm').addEventListener('click', handleConfirm);
-            document.getElementById('modalCancel').addEventListener('click', handleCancel);
-            modalInput.addEventListener('keydown', handleKeydown);
-        }
-
-        /**
-         * 显示确认模态框
-         */
-        function showConfirmModal(title, message, callback) {
-            const modalTitle = document.getElementById('confirmModalTitle');
-            modalTitle.textContent = title;
-
-            const contentEl = modalTitle.nextElementSibling;
-            if (contentEl && contentEl.id !== 'confirmCancel') {
-                contentEl.remove();
-            }
-
-            const messageEl = document.createElement('div');
-            messageEl.style.marginBottom = '16px';
-            messageEl.style.color = '#cccccc';
-            messageEl.style.fontSize = '14px';
-            messageEl.textContent = message;
-            modalTitle.after(messageEl);
-
-            confirmModal.classList.add('visible');
-
-            const handleOk = () => {
-                confirmModal.classList.remove('visible');
-                cleanup();
-                callback();
-            };
-
-            const handleCancel = () => {
-                confirmModal.classList.remove('visible');
-                cleanup();
-            };
-
-            const cleanup = () => {
-                document.getElementById('confirmOk').removeEventListener('click', handleOk);
-                document.getElementById('confirmCancel').removeEventListener('click', handleCancel);
-                messageEl.remove();
-            };
-
-            document.getElementById('confirmOk').addEventListener('click', handleOk);
-            document.getElementById('confirmCancel').addEventListener('click', handleCancel);
-        }
-
-        /**
-         * 执行 Python 代码
-         */
-        async function runPythonCode() {
-            if (!window.pyodide || !activeTabId) return;
-
-            const tab = openTabs.find(t => t.path === activeTabId);
-            if (!tab) return;
-
-            const code = tab.content;
-            output.innerHTML = '';
-            runBtn.disabled = true;
-
-            window.pyodide.setStdout({
-                batched: (text) => {
-                    const span = document.createElement('span');
-                    span.className = 'stdout';
-                    span.textContent = text;
-                    output.appendChild(span);
-                }
-            });
-
-            window.pyodide.setStderr({
-                batched: (text) => {
-                    const span = document.createElement('span');
-                    span.className = 'stderr';
-                    span.textContent = text;
-                    output.appendChild(span);
-                }
-            });
-
-            try {
-                await window.pyodide.runPythonAsync(code);
+                await pyodide.runPythonAsync(code);
             } catch (error) {
-                const span = document.createElement('span');
-                span.className = 'stderr';
-                span.textContent = error.message;
-                output.appendChild(span);
-            }
-
-            runBtn.disabled = false;
-        }
-
-        /**
-         * 保存当前文件
-         */
-        function saveCurrentFile() {
-            if (!activeTabId || !editor) return;
-
-            const tab = openTabs.find(t => t.path === activeTabId);
-            if (!tab) return;
-
-            const content = editor.getValue();
-            window.pyodide.FS.writeFile(tab.path, content);
-            tab.content = content;
-            modifiedFiles.delete(tab.path);
-            updateTabBar();
-        }
-
-        // 侧边栏折叠
-        document.getElementById('sidebarToggle').addEventListener('click', () => {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('collapsed');
-        });
-
-        // 点击其他地方关闭上下文菜单
-        document.addEventListener('click', (e) => {
-            if (!contextMenu.contains(e.target)) {
-                hideContextMenu();
+                const div = document.createElement('div');
+                div.className = 'stderr';
+                div.textContent = error.message;
+                outputContainer.appendChild(div);
+                outputContainer.scrollTop = outputContainer.scrollHeight;
             }
         });
 
-        // 触摸事件也会关闭上下文菜单
-        document.addEventListener('touchstart', (e) => {
-            if (!contextMenu.contains(e.target)) {
-                hideContextMenu();
-            }
-        }, { passive: true });
-
-        // 运行按钮
-        runBtn.addEventListener('click', runPythonCode);
-
-        // 初始化
-        initMonaco();
-        initPyodide();
+        start();
     </script>
 </body>
 </html>
