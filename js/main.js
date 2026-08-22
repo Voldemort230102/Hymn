@@ -1,22 +1,15 @@
-import {loadPyodide} from "../pyodide/pyodide.mjs";
+// main.js
+import * as page from "./switchPage.js";
+import * as fileTree from "./fileTree.js";
+import * as codeArea from "./codeArea.js";
+import * as outputArea from "./outputArea.js";
+import * as cloud from "./cloudDisk.js";
 
-const pyodide = await loadPyodide();
-
-// 暴露给全局（以便按钮的 onclick 能调用）
-window.pyodide = pyodide;
-
-// 定义全局运行函数
-window.runCode = function() {
-    try {
-        const result = pyodide.runPython(`
-            import sys
-            f"Hello from Python {sys.version}"
-        `);
-        console.log(result);
-    } catch (err) {
-        console.error(err);
-    }
-};
-
-// 自动执行一次
-window.runCode();
+// 加载 Pyodide
+let pyodide;
+try {
+    pyodide = await import("./loadPyodide.js");
+} catch (e) {
+    page.loadingPyodideError(e);
+}
+page.app();

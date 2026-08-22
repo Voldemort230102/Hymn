@@ -3,11 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <title>Primacy</title>
+    <script src="./js/jquery-4.0.0.min.js"></script>
 </head>
 
 <body>
 
-<h1>Primacy</h1>
+<div id="loadingPyodide">
+    <div id="loadingPyodideText">加载中……</div>
+</div>
+
+<div id="app" style="display: none;">
+    <div id="fileTree">
+        <div id="fileTreeTitle">
+            <div id="fileTreeTitleText">文件树</div>
+
+            <div id="fileTreeTitleAdd">+</div>
+            <div id="fileTreeTitleAddOption" style="display: none;">
+                <div id="addFolder">新建文件夹</div>
+                <div id="addFile">新建文件</div>
+            </div>
+
+            <div id="fileTreeTitleMore">···</div>
+            <div id="fileTreeTitleMoreOption" style="display: none;">
+                <div id="loadFromFS">从 IndexedDB 加载</div>
+                <div id="loadFromCloud">从 云 加载</div>
+            </div>
+        </div>
+
+        <div id="fileTreeList"></div>
+    </div>
+
+    <div id="codeArea">
+        <div id="codeAreaTitle">
+            <div id="codeAreaTitleText">代码区</div>
+            <div id="uploadAll">上传全部</div>
+            <div id="saveAll">保存全部</div>
+            <div id="runThis">运行</div>
+        </div>
+
+        <div id="codeAreaMain"></div>
+    </div>
+
+    <div id="outputArea">
+        <div id="outputAreaTitle">
+            <div id="outputAreaTitleText">输出区</div>
+            <div id="clearOutput">清空</div>
+            <div id="closeOutput">收起</div>
+        </div>
+
+        <div id="outputAreaMain"></div>
+    </div>
+</div>
+
+<div id="loadingFiles" style="display: none;">
+    <div id="loadingFilesTitle"></div>
+    <div id="loadingFilesProgress"></div>
+</div>
+
+<div id="showError" style="display: none;">
+    <div id="showErrorTitle"></div>
+    <div id="showErrorContext"></div>
+</div>
 
 </body>
 
