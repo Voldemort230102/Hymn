@@ -2,7 +2,3 @@
 import { loadPyodide } from '../pyodide/pyodide.mjs';
 
 const pyodide = await loadPyodide();
-
-export function run() {
-    console.log(pyodide);
-}

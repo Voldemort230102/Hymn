@@ -15,11 +15,15 @@ function show(id) {
     });
 }
 
-function showError(title, content) {
+function showError(title, content, err=null) {
     $("#showErrorTitle").text(title);
-    $("#showErrorContent").text(content);
+    $("#showErrorContent").text(content.toString());
     show("#showError");
-    throw new Error(content);
+    if (err == null) {
+        throw content;
+    } else {
+        throw err;
+    }
 }
 
 export function loadingPyodideError(content) {
@@ -30,8 +34,8 @@ export function loadFromFSError(content) {
     showError("从 IndexedDB 加载文件时出错", content);
 }
 
-export function loadFromCloudError(content) {
-    showError("从 云 加载文件时出错", content);
+export function loadFromCloudError(content, err) {
+    showError("从 云 加载文件时出错", content, err);
 }
 
 export function uploadAllError(content) {
@@ -52,7 +56,7 @@ export function app() {
 
 function showLoadingFiles(title, content) {
     $("#loadingFilesTitle").text(title);
-    $("#loadingFilesContent").text(content);
+    $("#loadingFilesProgress").text(content);
     show("#loadingFiles");
 }
 
