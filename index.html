@@ -1,71 +1,120 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>Primacy</title>
-    <script src="./js/jquery-4.0.0.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#1e1e1e" />
+  <title>Primacy — Pyodide IDE</title>
+  <link rel="stylesheet" href="./src/style.css" />
 </head>
-
 <body>
-
-<div id="loadingPyodide">
-    <div id="loadingPyodideText">加载中……</div>
-</div>
-
-<div id="app" style="display: none;">
-    <div id="fileTree">
-        <div id="fileTreeTitle">
-            <div id="fileTreeTitleText">文件树</div>
-
-            <div id="fileTreeTitleAdd">+</div>
-            <div id="fileTreeTitleAddOption" style="display: none;">
-                <div id="addFolder">新建文件夹</div>
-                <div id="addFile">新建文件</div>
-            </div>
-
-            <div id="fileTreeTitleMore">···</div>
-            <div id="fileTreeTitleMoreOption" style="display: none;">
-                <div id="loadFromFS">从 IndexedDB 加载</div>
-                <div id="loadFromCloud">从 云 加载</div>
-            </div>
-        </div>
-
-        <div id="fileTreeList"></div>
+  <!-- 顶部工具栏 -->
+  <header class="toolbar" id="toolbar">
+    <div class="toolbar-left">
+      <button class="tool-btn" id="btn-toggle-sidebar" title="文件" aria-label="文件">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M3 5h7l2 2h9v12H3V5z"/></svg>
+      </button>
+      <button class="tool-btn" id="btn-new" title="新建文件" aria-label="新建">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M13 3v6h6v2h-6v6h-2v-6H5V9h6V3h2z"/></svg>
+      </button>
+      <button class="tool-btn" id="btn-save" title="保存" aria-label="保存">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4zM7 19v-6h10v6H7zm0-8V5h8v2H9v4H7z"/></svg>
+      </button>
     </div>
-
-    <div id="codeArea">
-        <div id="codeAreaTitle">
-            <div id="codeAreaTitleText">代码区</div>
-            <div id="uploadAll">上传全部</div>
-            <div id="saveAll">保存全部</div>
-            <div id="runThis">运行</div>
-        </div>
-
-        <div id="codeAreaMain"></div>
+    <div class="toolbar-title" id="active-file-name">main.py</div>
+    <div class="toolbar-right">
+      <button class="tool-btn" id="btn-packages" title="包管理" aria-label="包管理">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.2l7.5 3.75L12 11.7 4.5 7.95 12 4.2zM4 9.3l7 3.5v7.4l-7-3.5V9.3zm16 0v7.4l-7 3.5v-7.4l7-3.5z"/></svg>
+      </button>
+      <button class="tool-btn" id="btn-settings" title="设置" aria-label="设置">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm9.4 5l1.5-1-1.5-2.6-1.8.6a7.5 7.5 0 0 0-1.5-.9l-.3-1.9h-3l-.3 1.9c-.5.2-1 .5-1.5.9l-1.8-.6L7.1 12l1.5 1-.6 1.8 1.9.6c.2.5.5 1 .9 1.5l-.6 1.8 2.6 1.5 1-1.5h.2l1 1.5 2.6-1.5-.6-1.8c.5-.5.8-1 1-1.5l1.9-.6.6-1.8z"/></svg>
+      </button>
+      <button class="tool-btn run" id="btn-run" title="运行" aria-label="运行">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M8 5v14l11-7L8 5z"/></svg>
+      </button>
+      <button class="tool-btn stop" id="btn-stop" title="停止" aria-label="停止" disabled>
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M6 6h12v12H6V6z"/></svg>
+      </button>
     </div>
+  </header>
 
-    <div id="outputArea">
-        <div id="outputAreaTitle">
-            <div id="outputAreaTitleText">输出区</div>
-            <div id="clearOutput">清空</div>
-            <div id="closeOutput">收起</div>
-        </div>
+  <!-- 主体三栏 -->
+  <div class="workspace" id="workspace">
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span>文件资源管理器</span>
+      </div>
+      <div class="file-list" id="file-list"></div>
+      <div class="sidebar-footer">
+        <button class="side-btn" id="btn-new-file">+ 新建文件</button>
+      </div>
+    </aside>
 
-        <div id="outputAreaMain"></div>
+    <!-- 主编辑区 -->
+    <main class="editor-area" id="editor-area">
+      <div class="tabs" id="tabs"></div>
+      <div class="editor-container" id="editor-container"></div>
+      <div class="pyodide-status" id="pyodide-status">Pyodide 加载中…</div>
+    </main>
+  </div>
+
+  <!-- 底部终端面板 -->
+  <section class="terminal-panel" id="terminal-panel">
+    <div class="terminal-header">
+      <span class="terminal-title">终端</span>
+      <div class="terminal-actions">
+        <button class="term-btn" id="btn-clear-terminal" title="清空">清空</button>
+        <button class="term-btn" id="btn-toggle-terminal" title="折叠">—</button>
+      </div>
     </div>
-</div>
+    <div class="terminal-body" id="terminal-body"></div>
+    <div class="terminal-repl">
+      <span class="repl-prompt">&gt;&gt;&gt;</span>
+      <input type="text" id="repl-input" placeholder="输入 Python 表达式，回车执行…" autocomplete="off" spellcheck="false" />
+    </div>
+  </section>
 
-<div id="loadingFiles" style="display: none;">
-    <div id="loadingFilesTitle"></div>
-    <div id="loadingFilesProgress"></div>
-</div>
+  <!-- 模态框：包管理 -->
+  <div class="modal" id="modal-packages" hidden>
+    <div class="modal-box">
+      <h3>安装 Python 包</h3>
+      <p class="modal-hint">输入包名，多个用逗号分隔（纯 Python 包或 Pyodide 预编译包）。</p>
+      <input type="text" id="pkg-input" placeholder="例如: numpy, pandas, six" autocomplete="off" />
+      <div class="modal-btns">
+        <button class="btn-primary" id="pkg-install">安装</button>
+        <button class="btn-ghost" id="pkg-cancel">取消</button>
+      </div>
+    </div>
+  </div>
 
-<div id="showError" style="display: none;">
-    <div id="showErrorTitle"></div>
-    <div id="showErrorContent"></div>
-</div>
+  <!-- 模态框：设置 -->
+  <div class="modal" id="modal-settings" hidden>
+    <div class="modal-box">
+      <h3>设置</h3>
+      <label class="setting-row">
+        <span>字体大小</span>
+        <input type="range" id="font-size" min="12" max="24" value="16" />
+        <span id="font-size-val">16px</span>
+      </label>
+      <label class="setting-row">
+        <span>自动保存</span>
+        <input type="checkbox" id="auto-save" checked />
+      </label>
+      <div class="modal-btns">
+        <button class="btn-primary" id="settings-close">关闭</button>
+      </div>
+    </div>
+  </div>
 
+  <!-- 长按操作菜单 -->
+  <div class="context-menu" id="context-menu" hidden>
+    <button data-action="rename">重命名</button>
+    <button data-action="download">下载</button>
+    <button data-action="delete" class="danger">删除</button>
+  </div>
+
+  <script src="./pyodide/pyodide.js"></script>
+  <script type="module" src="./src/main.js"></script>
 </body>
-
-<script type="module" src="./js/main.js"></script>
 </html>

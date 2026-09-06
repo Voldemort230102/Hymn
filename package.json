@@ -1,0 +1,18 @@
+{
+  "name": "primacy-pyodide-ide",
+  "version": "1.0.0",
+  "description": "Pure frontend Pyodide Python Web IDE optimized for Pad touchscreens",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "monaco-editor": "^0.55.0",
+    "pyodide": "314.0.4"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

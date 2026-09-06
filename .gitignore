@@ -181,4 +181,21 @@ cython_debug/
 .cursorindexingignore
 
 unuse
-pyodide-core-314.0.5.tar.bz2
+
+# Pyodide release tarballs (downloaded locally)
+pyodide-core-*.tar.bz2
+pyodide-*.tar.bz2
+
+# Node / Vite
+node_modules/
+dist/
+.vite/
+
+# Local Pyodide runtime (large, downloaded separately)
+public/pyodide/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+.trae/

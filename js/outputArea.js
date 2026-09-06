@@ -1,1 +1,0 @@
-// outputArea.js
